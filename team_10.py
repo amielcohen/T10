@@ -29,9 +29,11 @@ def test_is_exist(str):
     db = open('DataBase.txt', 'r')
     for i in db:
         arr = i.split()
-        if (arr[1] == str):
-            db.close()
-            return True
+        if(i!='\n'):
+            if (arr[1] == str):
+                db.close()
+                return True
+
     db.close()
     return False
 
@@ -67,26 +69,28 @@ class Loginpage(tk.Frame):
         for i in db:
 
             arr = i.split()
+            if(i!='\n'):
+                typ = arr[0]
+                ID = arr[1]
+                code = arr[2]
 
-            typ = arr[0]
-            ID = arr[1]
-            code = arr[2]
+                if (username == ID and usercode == code):
+                    Exists = True
 
-            if (username == ID and usercode == code):
-                Exists = True
+                    if (typ == 'secretary'):
+                        controller.show_frame(SecretaryHomePage)
+                    elif (typ == 'manager'):
+                        controller.show_frame(ManagerHomePage)
+                    elif (typ == 'worker'):
+                        global last_ID
+                        last_ID = ID
+                        controller.show_frame(WorkerHomePage)
+                    else:
+                        messagebox.showerror(title="error", message="Unknown error")
 
-                if (typ == 'secretary'):
-                    controller.show_frame(SecretaryHomePage)
-                elif (typ == 'manager'):
-                    controller.show_frame(ManagerHomePage)
-                elif (typ == 'worker'):
-                    global last_ID
-                    last_ID = ID
-                    controller.show_frame(WorkerHomePage)
-                else:
-                    messagebox.showerror(title="error", message="Unknown error")
+                    break
 
-                break
+
         if (Exists == False):
             messagebox.showerror(title="error", message="Invalid login")
         db.close()
