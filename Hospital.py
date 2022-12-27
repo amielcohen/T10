@@ -356,6 +356,15 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
         with open(str(last_ID) + '.txt', 'r') as f:
             # Split the contents of the file by line breaks
             work_path = f.read().split('\n')
+        list_path = []
+
+        # Iterate through the elements in work_path
+        for line in work_path:
+            # Split the line into separate words
+            words = line.split()
+            # Add the words to the list_path list
+            list_path.extend(words)
+
         # Show the work path to the user
         addWindow = tk.Toplevel(self)
         addWindow.title("Work path")
@@ -363,14 +372,21 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
         addWindow.geometry("400x390")
         addWindow.resizable(False, False)
 
-        # Join the elements in work_path with line breaks
-        text = '\n'.join(work_path)
+        # Iterate through the elements in list_path
+        i = 1
+        for word in list_path:
+            # Create a label with the text from list_path
+            label = tk.Label(addWindow, text=str(i) + '.' + word + '\n', bg="bisque", font=("Helvetica", 20), wraplength=300,
+                             justify=tk.LEFT)
+            # Pack the label to display it
+            label.pack()
+            i += 1
 
-        # Create a label with the text from work_path
-        label = tk.Label(addWindow, text=text, bg="bisque", font=("Helvetica", 20), wraplength=300, justify=tk.LEFT)
-        # Pack the label to display it
-        label.pack()
-
+        # Create a button to return to the previous state
+        back_button = tk.Button(addWindow, text="Back", font=("Helvetica", 20, "bold"), width=10,
+                                command=addWindow.destroy)
+        # Pack the button to display it on the very bottom and right side of the window
+        back_button.pack(side=tk.RIGHT, anchor=tk.SE, padx=10, pady=10)
 # ---------------------------------------------------------------------------------------------------------------------------------------
 class Application(tk.Tk):
     def __init__(self, *args, **kwargs):
