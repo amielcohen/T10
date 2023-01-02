@@ -1,6 +1,6 @@
 import unittest
 import Hospital as team_10
-
+import os
 
 class TestHospital(unittest.TestCase):
     def SetUp(self):
@@ -85,6 +85,20 @@ class TestHospital(unittest.TestCase):
             file.seek(0)
             self.assertEqual(file.readline(), "worker 1234 1234 dor dor\n")
             self.assertEqual(file.readline(), "Test1 Test2 Test3\n")
+
+    def test_update_manager_file(self):
+        # Arrange
+        details_report = "This is a test report."
+
+        # Act
+        team_10.test_update_manager_file(details_report)
+
+        # Assert
+        with open(f"test_report.txt", "r") as file:
+            contents = file.read()
+            self.assertEqual(contents, details_report)
+            self.assertNotEqual(contents, details_report + 'test')
+            self.assertNotEqual(contents, 'Previous test')
 
     if __name__ == '__main__':
         unittest.main()
