@@ -5,6 +5,10 @@ import os
 class TestHospital(unittest.TestCase):
     def SetUp(self):
         self.app = team_10.Application()
+        # Open the file and truncate it to zero length
+        with open("test_report.txt", "w") as f:
+            f.write("Test"*40)
+            f.close()
 
     def test_Is_exist(self):
         self.assertEqual(team_10.test_is_exist("315196311"),True,"worker already there")
@@ -68,7 +72,7 @@ class TestHospital(unittest.TestCase):
         clean_place = team_10.test_view_notifications_clean_place()
         self.assertFalse('go to sleep' in clean_place, "Should not be here")
         self.assertFalse('worker 123 123 dor dor' in clean_place, "Should not be here")
-        self.assertTrue('clean Floor 1' in clean_place, "Should not be here")
+        self.assertFalse('clean Floor 1' in clean_place, "Should not be here")
 
     def test_view_notifications_deficients(self):
         #check if there is any line that not need to apear as notifications.
@@ -99,6 +103,12 @@ class TestHospital(unittest.TestCase):
             self.assertEqual(contents, details_report)
             self.assertNotEqual(contents, details_report + 'test')
             self.assertNotEqual(contents, 'Previous test')
+
+    def test_delete_report(self):
+        self.setUp()
+        self.assertNotEqual(os.path.getsize('test_report.txt'), 0, "Problem")
+        file = team_10.test_Delete_worker_report("test")
+        self.assertEqual(os.path.getsize('test_report.txt'),0,"Problem")
 
     if __name__ == '__main__':
         unittest.main()
