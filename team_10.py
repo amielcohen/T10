@@ -1,3 +1,4 @@
+import tkinter
 import tkinter as tk
 from tkinter import ttk, END
 from tkinter import messagebox
@@ -8,6 +9,22 @@ import os
 last_ID = 0
 workers = {}
 
+
+def test_Delete_worker_report(worker_id):
+    filename = f"{worker_id}_report.txt"
+    if os.path.exists(filename):
+        # Open the file and truncate it to zero length
+        with open(filename, "w") as f:
+            pass
+            f.close()
+        return f
+
+
+def test_update_manager_file(Details_report):
+        with open(f"test_report.txt", "w") as file:
+            # Write the report to the file
+            file.write(Details_report)
+        return file
 
 def test_update_work_path(worker_id, new_work_path):
     with open(f"{worker_id}.txt", "r+") as f:
@@ -101,7 +118,7 @@ def change_bg_color_of_inventory(dict,items,file):
 
 
 def change_availability(flag):
-    '''join\out work unite test w'''
+    # join \ out work unite test w
     workers[last_ID] =flag
 
 def if_availability():
@@ -266,6 +283,74 @@ class ManagerHomePage(tk.Frame):  # מנהל
         self.edit_work_path.place(x=100, y=350)
         self.edit_work_path_window_is_open = False
 
+        self.button3 = tk.Button(self, text='Daily Reports', bg='green', font=('Arial Bold', 15),
+                                 command=self.view_daily_report)
+        self.button3.place(x=590, y=150)
+
+    def view_daily_report(self):
+        newWindow = tk.Toplevel(self)
+        newWindow.title("Daily report")
+        newWindow.configure(bg="bisque")
+        newWindow.geometry("400x400")
+        newWindow.resizable(True, True)
+
+        # ID Entry field
+        id_label = tk.Label(newWindow, text="ID:", bg="bisque")
+        id_entry = tk.Entry(newWindow)
+        id_label.pack(side="left", padx=10, pady=10)
+        id_entry.pack(side="left", padx=10, pady=10)
+
+        # Enter button
+        enter_button = tk.Button(newWindow, text="Enter", command=lambda: self.display_report_window(id_entry.get()))
+        enter_button.pack(side="left", padx=10, pady=10)
+
+        #Delete report Button
+        delete_button = tk.Button(newWindow,text="Delete report", command=lambda: self.Delete_worker_report(id_entry.get()))
+        delete_button.pack(side="left", padx=10, pady=10)
+
+        # Exit button
+        exit_button = tk.Button(newWindow, text="Exit", command=newWindow.destroy)
+        exit_button.pack(side="bottom", padx=10, pady=10)
+
+    def Delete_worker_report(self,worker_id):
+        if messagebox.askyesno("Security question", "By clicking on the Delete button you accept to remove the details"):
+            # Construct the filename for the worker's report
+            filename = f"{worker_id}_report.txt"
+            if os.path.exists(filename):
+                # Open the file and truncate it to zero length
+                with open(filename, "w") as f:
+                    pass
+                    f.close()
+                messagebox.showinfo("Deleted",f"Deleted report for Worker ID: {worker_id}")
+
+
+    def display_report_window(self, worker_id):
+        filename = f"{worker_id}_report.txt"
+        if os.path.exists(filename) and os.path.getsize(filename) > 0:
+            # Open the file and read the contents
+            with open(filename, "r") as file:
+                details = file.read()
+
+            # Create the window and a scrollable frame
+            window = tkinter.Toplevel(self)
+            window.title(f"Report for Worker ID: {worker_id}")
+            frame = tk.Frame(window)
+            frame.pack()
+
+            # Add a scrollbar to the frame
+            scrollbar = tk.Scrollbar(frame)
+            scrollbar.pack(side="right", fill="y")
+
+            # Add a Text widget to the frame and set it to display the report details
+            text = tk.Text(frame, yscrollcommand=scrollbar.set)
+            text.pack()
+            text.insert("1.0", details)
+
+            # Set the scrollbar to control the Text widget
+            scrollbar.config(command=text.yview)
+        else:
+            messagebox.showerror(f"{worker_id} Error",f"{worker_id} didnt send daily report or your already deleted it.")
+
     def edit_work_path(self):
         # Open a new window if it is not already open
         if (self.edit_work_path_window_is_open == False):
@@ -310,8 +395,6 @@ class ManagerHomePage(tk.Frame):  # מנהל
             # Close the window when the "x" button is clicked
             newWindow.protocol("WM_DELETE_WINDOW", on_closing)
 
-
-
     def update_work_path(self, worker_id, new_work_path):
         if tk.messagebox.askyesno("Question", f"By clicking yes the {worker_id} work path will change") == True:
             # Open the worker's id.txt file and update the first line with the new work path
@@ -325,8 +408,6 @@ class ManagerHomePage(tk.Frame):  # מנהל
 
             # Close the window
             #on_closing()
-
-
 
     def edit_workers(self):
         if (self.edit_window_is_open == False):
@@ -576,7 +657,44 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
         self.button4 = tk.Button(self, text='Notifications of deficiencies', bg='green', font=('Arial Bold', 15),
                   command=self.view_notifications_deficients)
         self.button4.place(x=590, y=230)
+        self.daily_report = False
+        self.daily_report_button = tk.Button(self, text='Send Daily Reoprt', font=('Arial Bold', 15),
+                                             command=self.send_daily_report)
+        self.daily_report_button.place(x=400,y=450)
 
+    #display the option of the report
+    def send_daily_report(self):
+        if if_availability() == 0:
+            # Show an error message
+            messagebox.showerror("Error", "Please enter work first")
+            return
+        if (self.daily_report == False):
+            newWindow = tk.Toplevel(self)
+            newWindow.title(f"Daily report of {last_ID}")
+            newWindow.configure(bg="bisque")
+            newWindow.geometry("550x500")
+            newWindow.resizable(False, False)
+
+            # Add a label and entry for the worker's ID
+            L_Enter = tk.Label(newWindow, text='Enter your report ' + str(last_ID) + ':', bg="bisque",
+                               font=("Arial Bold", 20))
+            L_Enter.place(x=120, y=0)
+            Detials_report = tk.Text(newWindow, width=60, height=20,font=("Arial Bold", 13))
+            Detials_report.place(x=2, y=40)
+            # Add a button to submit the new work path
+            submit_button = tk.Button(newWindow, text="Send", bg="light blue", font=("Arial Bold", 20),
+                                      command=lambda: update_manager_file(Detials_report.get("1.0", "end")))
+            submit_button.pack(side="bottom", pady=20)
+            submit_button.configure(height=1, width=20)
+
+        def update_manager_file(Details_report):
+            if tk.messagebox.askyesno("Confirm","By clicking on the send button you confirm to send the details"):
+                self.daily_report = True
+                # Open the file in write mode
+                with open(f"{last_ID}_report.txt", "w") as file:
+                    # Write the report to the file
+                    file.write(Details_report)
+                newWindow.destroy()
 
     #display the work path of the worker
     def show_path(self):
