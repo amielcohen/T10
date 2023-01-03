@@ -1,13 +1,16 @@
 import tkinter as tk
 from tkinter import ttk, END
 from tkinter import messagebox
+import os
 #from PIL import Image, ImageTk
 import sqlite3
 
 last_ID = 0
 workers = {}
 
+
 def check_if_item_exist(str,file):
+    '''Ordering equipment unit test W'''
     with open(f"{file}", 'r') as f:
         item = f.read()
         if str in item:
@@ -15,6 +18,7 @@ def check_if_item_exist(str,file):
     return False
 
 def change_bg_color_of_inventory(dict,items,file):
+    '''Lack of equipment unit test M'''
     with open(f'{file}', 'r') as f:
         item = f.read()
         for i in items:
@@ -23,9 +27,11 @@ def change_bg_color_of_inventory(dict,items,file):
     return dict
 
 def change_availability(flag):
+    '''join\out work unite test w'''
     workers[last_ID] =flag
 
 def test_is_exist(str):
+    '''add worker unite test m'''
     db = open('DataBase.txt', 'r')
     for i in db:
         arr = i.split()
@@ -33,9 +39,45 @@ def test_is_exist(str):
             if (arr[1] == str):
                 db.close()
                 return True
-
     db.close()
     return False
+
+def login_test(username,ID,usercode,code):
+    """login unite test"""
+    if username==ID and usercode==code:
+        return True
+    else: return False
+
+def logout():
+    last_ID=0
+
+def remove_worker_from_database(id,file):
+    find=False
+    with open(f"{file}", "r") as f:
+        lines = f.readlines()
+    with open(f"{file}", "w") as f:
+        for line in lines:
+            if line.strip("\n").split(" ")[0] == "worker":
+                if line.strip("\n").split(" ")[1] == id:
+                    find=True
+                if line.strip("\n").split(" ")[1] != id:
+                    f.write(line)
+            else:
+                f.write(line)
+    return find
+
+
+def create_worker_dic():
+    db = open('DataBase.txt', 'r')
+    # [0]-type [1]-ID [2]-password [3]-name [4]-lastname
+    for i in db:
+
+        arr = i.split()
+        if (i != '\n'):
+            typ = arr[0]
+            ID = arr[1]
+            if typ=="worker":
+                workers[ID]=False
 
 
 class Loginpage(tk.Frame):
@@ -74,8 +116,10 @@ class Loginpage(tk.Frame):
                 ID = arr[1]
                 code = arr[2]
 
-                if (username == ID and usercode == code):
-                    Exists = True
+                #if (username == ID and usercode == code):
+                 #   Exists = True
+                Exists=login_test(username,ID,usercode,code)
+                if Exists==True:
 
                     if (typ == 'secretary'):
                         controller.show_frame(SecretaryHomePage)
@@ -152,6 +196,31 @@ class ManagerHomePage(tk.Frame):  # מנהל
                     removeWindow.configure(bg="bisque")
                     removeWindow.geometry("400x320")
                     removeWindow.resizable(False, False)
+                    id=tk.Label(removeWindow,text="ID of the worker",bg="bisque")
+                    id.place(x=60,y=80)
+                    IDentry=tk.Entry(removeWindow)
+                    IDentry.place(x=160,y=80,width=155)
+                    def remove():
+                        if tk.messagebox.askyesno("Question", "are you sure you want to remove this worker?") == True:
+                            id_to_remove = IDentry.get()
+                            IDentry.delete(0,END)
+                            find_worker=remove_worker_from_database(id_to_remove,"DataBase.txt")
+                            removeWindow.destroy()
+                            self.edit_window_is_open = False
+                            remove_window_is_open=False
+                            newWindow.destroy()
+                            if find_worker==True:
+                                tk.messagebox.showinfo("worker removed","The employee has been removed!")
+                                workers.pop(id_to_remove)
+                                os.remove(f"{id_to_remove}.txt")
+                            else:
+                                tk.messagebox.showerror("eroor","The employee does not exist!")
+
+                    remove=tk.Button(removeWindow,text="remove",bg="#900001",command=remove)
+                    remove.place(x=200,y=200)
+
+
+
 
                     def on_close_remove():
                         nonlocal remove_window_is_open, removeWindow
@@ -253,8 +322,7 @@ class ManagerHomePage(tk.Frame):  # מנהל
         tissue = tk.Label(master, text='tissue', bg=items_color['tissue'], font=("Arial", 15)).place(x=180, y=260)
         masks = tk.Label(master, text='masks', bg=items_color['masks'], font=("Arial", 15)).place(x=180, y=300)
         gloves = tk.Label(master, text='gloves', bg=items_color['gloves'], font=("Arial", 15)).place(x=180, y=340)
-        directive = tk.Label(master, text='red-need to order\ngreen-in stck', bg="light blue", font=("Arial", 8)).place(
-            x=160, y=400)
+        directive = tk.Label(master, text='red-need to order\ngreen-in stck', bg="light blue", font=("Arial", 8)).place(x=160, y=400)
 
         def confrim():
             if tk.messagebox.askyesno("Question", "With your approval, the requests will be deleted") == True:
@@ -321,6 +389,8 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
 
         tk.Button(master, text='Order Confirmation', command=master.destroy).grid(row=10, column=1, sticky=tk.W)
 
+
+
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         lorder = tk.Button(self, text="order supplies", font=("Arial Bold", 20), bg="yellow", command=self.order_supp)
@@ -331,7 +401,7 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
         Label = tk.Label(self, text="Worker", font=("Arial Bold", 30), bg="#4f558f")
         Label.place(x=270, y=80)
         button = tk.Button(self, text="logout", font=("Arial", 15),
-                           command=lambda: [self.clean(), controller.show_frame(Loginpage)])
+                           command=lambda: [logout(),self.clean(), controller.show_frame(Loginpage)])
         button.place(x=650, y=450)
         self.present = tk.Button(self, text="enter work", bg="red", command=self.join_out_work, width=10)
         self.present.place(x=100, y=300)
@@ -361,6 +431,6 @@ class Application(tk.Tk):
         frame = self.frames[page]
         frame.tkraise()
 
-
+create_worker_dic()
 app = Application()
 app.mainloop()

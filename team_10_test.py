@@ -25,5 +25,24 @@ class TestHospital(unittest.TestCase):
         self.assertTrue(items,"should have test in file")
         items = team_10.check_if_item_exist("mop","testing.txt")
         self.assertFalse(items,"should NOT have mop in file")
+
+    def test_login(self):
+        self.assertTrue(team_10.login_test('a','a',"b","b"),"should be true Same values")
+        self.assertFalse(team_10.login_test("d","c","d","c"),"should be false Different values")
+
+    def test_logout(self):
+        team_10.logout()
+        self.assertEqual(0,team_10.last_ID)
+
+    def test_remove_worker(self):
+        string="worker 123456 123 israel israeli"
+        db = open('testing_remove.txt', 'a')
+        db.write(string)
+        db.close()
+        self.assertTrue(team_10.remove_worker_from_database("123456","testing_remove.txt"),"The employee was found and deleted")
+        self.assertFalse(team_10.remove_worker_from_database("987654", "testing_remove.txt"),"ID of a clerk and not a cleaning worker")
+
+
+
     if __name__ == '__main__':
         unittest.main()
