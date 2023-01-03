@@ -348,6 +348,7 @@ class ManagerHomePage(tk.Frame):  # מנהל
 
             # Set the scrollbar to control the Text widget
             scrollbar.config(command=text.yview)
+            file.close()
         else:
             messagebox.showerror(f"{worker_id} Error",f"{worker_id} didnt send daily report or your already deleted it.")
 
@@ -405,6 +406,7 @@ class ManagerHomePage(tk.Frame):  # מנהל
                 # Write the updated lines back to the file
                 f.seek(0)
                 f.writelines(lines)
+                f.close()
 
             # Close the window
             #on_closing()
@@ -694,6 +696,7 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
                 with open(f"{last_ID}_report.txt", "w") as file:
                     # Write the report to the file
                     file.write(Details_report)
+                    file.close()
                 newWindow.destroy()
 
     #display the work path of the worker
@@ -742,7 +745,7 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
             buttons[word] = button
             button.pack()
             i += 1
-
+        f.close()
         # Create a button to return to the previous state
         back_button = tk.Button(addWindow, text="Back", font=("Helvetica", 20, "bold"), width=10,
                                 command=addWindow.destroy)
@@ -776,6 +779,7 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
             # remove the notification from the file
             with open(f"{last_ID}.txt", 'r') as f:
                 notifications = f.readlines()
+                f.close()
             notifications = [n for n in notifications if n != notification]
             with open(f"{last_ID}.txt", 'w') as f:
                 f.writelines(notifications)
@@ -788,6 +792,7 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
             self.button4.config(state=tk.NORMAL)
             # Remove the "bed ready" button
             self.bed_ready_button.destroy()
+            f.close()
 
 
     def view_notifications_clean_bed(self):
@@ -835,6 +840,7 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
         # read the notifications from the file
         with open(f"{last_ID}.txt", 'r') as f:
             notifications = f.readlines()[4:]  # skip the first three lines
+            f.close()
 
         # create a list to store the lines
         clean_bed_list = []
@@ -885,13 +891,16 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
             # remove the notification from the file
             with open(f"{last_ID}.txt", 'r') as f:
                 notifications = f.readlines()
+                f.close()
             notifications = [n for n in notifications if n != notification]
             with open(f"{last_ID}.txt", 'w') as f:
                 f.writelines(notifications)
+                f.close()
 
         # read the notifications from the file
         with open(f"{last_ID}.txt", 'r') as f:
             notifications = f.readlines()[4:]  # skip the first three lines
+            f.close()
 
         # create a list to store the lines
         clean_places_notification_list = []
@@ -942,13 +951,16 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
             # remove the notification from the file
             with open(f"{last_ID}.txt", 'r') as f:
                 notifications = f.readlines()
+                f.close()
             notifications = [n for n in notifications if n != notification]
             with open(f"{last_ID}.txt", 'w') as f:
                 f.writelines(notifications)
+                f.close()
 
         # read the notifications from the file
         with open(f"{last_ID}.txt", 'r') as f:
             notifications = f.readlines()[4:]  # skip the first three lines
+            f.close()
 
         fill_notifications = []
         # create a list to store the lines
