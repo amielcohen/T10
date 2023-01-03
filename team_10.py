@@ -10,6 +10,7 @@ last_ID = 0
 workers = {}
 
 
+
 def test_Delete_worker_report(worker_id):
     filename = f"{worker_id}_report.txt"
     if os.path.exists(filename):
@@ -18,7 +19,6 @@ def test_Delete_worker_report(worker_id):
             pass
             f.close()
         return f
-
 
 def test_update_manager_file(Details_report):
         with open(f"test_report.txt", "w") as file:
