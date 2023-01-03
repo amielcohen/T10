@@ -10,6 +10,7 @@ last_ID = 0
 workers = {}
 
 
+
 def test_Delete_worker_report(worker_id):
     filename = f"{worker_id}_report.txt"
     if os.path.exists(filename):
@@ -18,7 +19,6 @@ def test_Delete_worker_report(worker_id):
             pass
             f.close()
         return f
-
 
 def test_update_manager_file(Details_report):
         with open(f"test_report.txt", "w") as file:
@@ -100,22 +100,6 @@ def test_show_path():
     return list_path
 
 
-def check_if_item_exist(str, file):
-    with open(f"{file}", 'r') as f:
-        item = f.read()
-        if str in item:
-            return True
-    return False
-
-
-def change_bg_color_of_inventory(dict,items,file):
-    with open(f'{file}', 'r') as f:
-        item = f.read()
-        for i in items:
-            if i in item:
-                dict[i] = "red"
-    return dict
-
 
 def change_availability(flag):
     # join \ out work unite test w
@@ -123,54 +107,6 @@ def change_availability(flag):
 
 def if_availability():
     return workers[last_ID]
-
-def test_is_exist(str):
-    db = open('DataBase.txt', 'r')
-    for i in db:
-        arr = i.split()
-        if (arr[1] == str):
-            messagebox.showerror(title="error", message="this worker is already exist")
-            return True
-    return False
-
-def login_test(username,ID,usercode,code):
-    """login unite test"""
-    if username==ID and usercode==code:
-        return True
-    else: return False
-
-def logout():
-    last_ID=0
-
-
-def remove_worker_from_database(id,file):
-    find=False
-    with open(f"{file}", "r") as f:
-        lines = f.readlines()
-    with open(f"{file}", "w") as f:
-        for line in lines:
-            if line.strip("\n").split(" ")[0] == "worker":
-                if line.strip("\n").split(" ")[1] == id:
-                    find=True
-                if line.strip("\n").split(" ")[1] != id:
-                    f.write(line)
-            else:
-                f.write(line)
-    return find
-
-
-def create_worker_dic():
-    db = open('DataBase.txt', 'r')
-    # [0]-type [1]-ID [2]-password [3]-name [4]-lastname
-    for i in db:
-
-        arr = i.split()
-        if (i != '\n'):
-            typ = arr[0]
-            ID = arr[1]
-            if typ=="worker":
-                workers[ID]=False
-
 
 
 class worker():
