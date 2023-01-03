@@ -1,0 +1,17 @@
+
+Lobby Salon Library
+
+
+clean me
+clean me1
+clean Floor 1
+clean Floor 2
+clean Lobby "somebody puke"
+go to sleep
+fill soup in "Gariatry"
+fill toalet in "Entry"
+fill soup in "Bed-Room"
+fill 5
+fill 6
+fill 7
+clean bed floor 5

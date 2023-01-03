@@ -110,5 +110,12 @@ class TestHospital(unittest.TestCase):
         file = team_10.test_Delete_worker_report("test")
         self.assertEqual(os.path.getsize('test_report.txt'),0,"Problem")
 
+    def test_watch_notifications(self):
+        with open("test_Left_notifications.txt", "r") as file:
+            details = file.read()
+            file.close()
+        self.assertEqual(details, team_10.watch_notifications("test"), "Problem")
+        self.assertEqual(False, team_10.watch_notifications("test2"), "Problem")
+
     if __name__ == '__main__':
         unittest.main()

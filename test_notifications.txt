@@ -1,0 +1,12 @@
+worker 1234 1234 dor dor
+Test1 Test2 Test3
+
+
+clean me1
+clean Floor 1
+clean Floor 2
+clean Lobby "somebody puke"
+go to sleep
+fill soup in "Gariatry"
+fill toalet in "Entry"
+fill soup in "Bed-Room"
