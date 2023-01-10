@@ -9,7 +9,71 @@ import os
 last_ID = 0
 workers = {}
 
+def change_bg_color_of_inventory(dict,items,file):
+    '''Lack of equipment unit test M'''
+    with open(f'{file}', 'r') as f:
+        item = f.read()
+        for i in items:
+            if i in item:
+                dict[i] = "red"
+    return dict
 
+def watch_notifications(worker_id):
+    filename = f"{worker_id}_Left_notifications.txt"
+    if os.path.exists(filename) and os.path.getsize(filename) > 0:
+        # Open the file and read the contents
+        with open(filename, "r") as file:
+            details = file.read()
+            file.close()
+            return details
+    else:
+        return False
+
+def login_test(username,ID,usercode,code):
+    """login unite test"""
+    if username==ID and usercode==code:
+        return True
+    else: return False
+
+def logout():
+    last_ID=0
+
+
+
+def check_if_item_exist(str,file):
+    '''Ordering equipment unit test W'''
+    with open(f"{file}", 'r') as f:
+        item = f.read()
+        if str in item:
+            return True
+    return False
+
+def remove_worker_from_database(id,file):
+    find=False
+    with open(f"{file}", "r") as f:
+        lines = f.readlines()
+    with open(f"{file}", "w") as f:
+        for line in lines:
+            if line.strip("\n").split(" ")[0] == "worker":
+                if line.strip("\n").split(" ")[1] == id:
+                    find=True
+                if line.strip("\n").split(" ")[1] != id:
+                    f.write(line)
+            else:
+                f.write(line)
+    return
+
+def test_is_exist(str):
+    '''add worker unite test m'''
+    db = open('DataBase.txt', 'r')
+    for i in db:
+        arr = i.split()
+        if(i!='\n'):
+            if (arr[1] == str):
+                db.close()
+                return True
+    db.close()
+    return False
 
 def test_Delete_worker_report(worker_id):
     filename = f"{worker_id}_report.txt"
@@ -226,27 +290,67 @@ class ManagerHomePage(tk.Frame):  # מנהל
     def view_daily_report(self):
         newWindow = tk.Toplevel(self)
         newWindow.title("Daily report")
-        newWindow.configure(bg="bisque")
+        newWindow.configure(bg="#002955")
         newWindow.geometry("400x400")
         newWindow.resizable(True, True)
-
         # ID Entry field
         id_label = tk.Label(newWindow, text="ID:", bg="bisque")
         id_entry = tk.Entry(newWindow)
         id_label.pack(side="left", padx=10, pady=10)
         id_entry.pack(side="left", padx=10, pady=10)
 
-        # Enter button
-        enter_button = tk.Button(newWindow, text="Enter", command=lambda: self.display_report_window(id_entry.get()))
-        enter_button.pack(side="left", padx=10, pady=10)
+        # Create a frame to hold the buttons
+        button_frame = tk.Frame(newWindow)
+        button_frame.config(bg="#00294b")
+        button_frame.pack(side="left", padx=10, pady=10)
 
-        #Delete report Button
-        delete_button = tk.Button(newWindow,text="Delete report", command=lambda: self.Delete_worker_report(id_entry.get()))
-        delete_button.pack(side="left", padx=10, pady=10)
+        # Enter button
+        enter_button = tk.Button(button_frame, text="Watch Report", command=lambda: self.display_report_window(id_entry.get()))
+        enter_button.pack(side="top", padx=10, pady=10)
+
+        # Delete report Button
+        delete_button = tk.Button(button_frame, text="Delete report",
+                                  command=lambda: self.Delete_worker_report(id_entry.get()))
+        delete_button.pack(side="top", padx=10, pady=10)
+
+        # View Open Calls Notifications
+        notifications_button = tk.Button(button_frame, text="Watch Open Notifications",
+                                         command=lambda: self.watch_notifications(id_entry.get()))
+        notifications_button.pack(side="top", padx=10, pady=20)
 
         # Exit button
-        exit_button = tk.Button(newWindow, text="Exit", command=newWindow.destroy)
-        exit_button.pack(side="bottom", padx=10, pady=10)
+        exit_button = tk.Button(button_frame, text="Exit", command=newWindow.destroy)
+        exit_button.pack(side="top", padx=10, pady=10)
+
+
+    def watch_notifications(self,worker_id):
+        filename = f"{worker_id}_Left_notifications.txt"
+        if os.path.exists(filename) and os.path.getsize(filename) > 0:
+            # Open the file and read the contents
+            with open(filename, "r") as file:
+                details = file.read()
+
+            # Create the window and a scrollable frame
+            window = tkinter.Toplevel(self)
+            window.title(f"Open notifications for Worker ID: {worker_id}")
+            frame = tk.Frame(window)
+            frame.pack()
+
+            # Add a scrollbar to the frame
+            scrollbar = tk.Scrollbar(frame)
+            scrollbar.pack(side="right", fill="y")
+
+            # Add a Text widget to the frame and set it to display the report details
+            text = tk.Text(frame, yscrollcommand=scrollbar.set)
+            text.pack()
+            text.insert("1.0", details)
+
+            # Set the scrollbar to control the Text widget
+            scrollbar.config(command=text.yview)
+            file.close()
+        else:
+            messagebox.showerror(f"{worker_id} Error",
+                                 f"{worker_id} didnt send daily report or your already deleted it.")
 
     def Delete_worker_report(self,worker_id):
         if messagebox.askyesno("Security question", "By clicking on the Delete button you accept to remove the details"):
@@ -273,6 +377,7 @@ class ManagerHomePage(tk.Frame):  # מנהל
             frame = tk.Frame(window)
             frame.pack()
 
+
             # Add a scrollbar to the frame
             scrollbar = tk.Scrollbar(frame)
             scrollbar.pack(side="right", fill="y")
@@ -284,6 +389,9 @@ class ManagerHomePage(tk.Frame):  # מנהל
 
             # Set the scrollbar to control the Text widget
             scrollbar.config(command=text.yview)
+
+            # Close the window when the "x" button is clicked
+            window.protocol("WM_DELETE_WINDOW", window.destroy)
             file.close()
         else:
             messagebox.showerror(f"{worker_id} Error",f"{worker_id} didnt send daily report or your already deleted it.")
@@ -291,6 +399,11 @@ class ManagerHomePage(tk.Frame):  # מנהל
     def edit_work_path(self):
         # Open a new window if it is not already open
         if (self.edit_work_path_window_is_open == False):
+
+            def on_closing():
+                self.edit_work_path_window_is_open = False
+                newWindow.destroy()
+
             self.edit_work_path_window_is_open = True
             newWindow = tk.Toplevel(self)
             newWindow.title("Edit specific worker work-path")
@@ -301,33 +414,27 @@ class ManagerHomePage(tk.Frame):  # מנהל
             # Add a label and entry for the worker's ID
             LID = tk.Label(newWindow, text="ID", bg="bisque")
             ID = tk.Entry(newWindow, width=30)
-            LID.place(x=20, y=80)
-            ID.place(x=120, y=80)
+            LID.place(x=20, y=40)
+            ID.place(x=120, y=40)
 
             # Add a label and entry for the new work path
-            Lwork_path = tk.Label(newWindow, text="Work path", bg="bisque")
-            work_path = tk.Entry(newWindow, width=30)
-            Lwork_path.place(x=20, y=140)
-            work_path.place(x=120, y=140)
-
+            work_path = tk.Text(newWindow, width=60, height=6, font=("Arial Bold", 13))
+            work_path.place(x=2, y=100)
             # Add a button to submit the new work path
-            submit_button = tk.Button(newWindow, text="Submit", bg="light blue",
-                                      command=lambda: self.update_work_path(ID.get(), work_path.get()))
-            submit_button.place(x=160, y=200)
+            submit_button = tk.Button(newWindow, text="Send", bg="light blue", font=("Arial Bold", 20),
+                                      command=lambda: self.update_work_path(ID.get(), work_path.get("1.0", "end")))
+            submit_button.pack(side="bottom", pady=45)
+            submit_button.configure(height=1, width=15)
 
             # add an Exit button to close the window
-            exit_button = tk.Button(newWindow, text="Exit", command=newWindow.destroy)
+            exit_button = tk.Button(newWindow, text="Exit", command=on_closing)
 
             # Get the width of the window and the required width of the Exit button
             window_width = newWindow.winfo_width()
             exit_button_width = exit_button.winfo_reqwidth()
 
             # Place the Exit button at the right edge of the window, with a small margin
-            exit_button.place(x=280, y=200)
-
-            def on_closing():
-                self.edit_work_path_window_is_open = False
-                newWindow.destroy()
+            exit_button.place(x=350, y=280)
 
             # Close the window when the "x" button is clicked
             newWindow.protocol("WM_DELETE_WINDOW", on_closing)
@@ -338,14 +445,13 @@ class ManagerHomePage(tk.Frame):  # מנהל
             with open(f"{worker_id}.txt", "r+") as f:
                 lines = f.readlines()
                 # Update the second line with the new work path
-                lines[1] = f"{new_work_path}\n"
+                lines[1] = str(new_work_path) + '\n'
                 # Write the updated lines back to the file
                 f.seek(0)
                 f.writelines(lines)
                 f.close()
 
-            # Close the window
-            #on_closing()
+
 
     def edit_workers(self):
         if (self.edit_window_is_open == False):
@@ -631,8 +737,20 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
                 # Open the file in write mode
                 with open(f"{last_ID}_report.txt", "w") as file:
                     # Write the report to the file
-                    file.write(Details_report)
+                    file.write(str(Details_report))
                     file.close()
+                with open(f"{last_ID}.txt", "r") as f:
+                    lines = f.readlines()
+                    f.close()
+
+                with open(f"{last_ID}.txt", "w") as f:
+                    f.writelines(lines[:4])
+                    f.close()
+
+                with open(f"{last_ID}_Left_notifications.txt", "w") as notFile:
+                    notFile.writelines(lines[4:])
+                    notFile.close()
+
                 newWindow.destroy()
 
     #display the work path of the worker
