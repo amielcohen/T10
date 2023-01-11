@@ -49,6 +49,7 @@ def login_test(username,ID,usercode,code):
     else: return False
 
 def logout():
+    global last_ID
     last_ID=0
 
 def remove_worker_from_database(id,file):
@@ -182,6 +183,13 @@ def create_worker_dic():
             ID = arr[1]
             if typ=="worker":
                 workers[ID]=False
+
+def on_closing():
+    global last_ID
+    last_ID = 0
+    app.destroy()
+
+
 
 #-----------------------------------------------------------------------------------------------------------------------
 class Loginpage(tk.Frame):
@@ -498,6 +506,9 @@ class ManagerHomePage(tk.Frame):  # מנהל
                                 tk.messagebox.showinfo("worker removed","The employee has been removed!")
                                 workers.pop(id_to_remove)
                                 os.remove(f"{id_to_remove}.txt")
+                                os.remove(f'{id_to_remove}_Left_notifications.txt')
+                                os.remove(f'{id_to_remove}_report.txt')
+
                             else:
                                 tk.messagebox.showerror("eroor","The employee does not exist!")
 
@@ -700,7 +711,7 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
         self.daily_report = False
 
         button = tk.Button(self, text="logout", bg="red", font=("Arial", 15),
-                           command=lambda: [self.clean(), controller.show_frame(Loginpage),self.daily_report_reset()])
+                           command=lambda: [self.clean(), logout(),controller.show_frame(Loginpage),self.daily_report_reset()])
         button.place(x=750, y=450)
         self.present = tk.Button(self, text="enter work", bg="red", command=self.join_out_work, width=10)
         self.present.place(x=100, y=300)
@@ -1076,4 +1087,6 @@ class Application(tk.Tk):
 
 create_worker_dic()
 app = Application()
+app.protocol("WM_DELETE_WINDOW", on_closing)
 app.mainloop()
+
