@@ -715,7 +715,7 @@ class ManagerHomePage(tk.Frame):  # מנהל
             work_path.place(x=2, y=100)
             # Add a button to submit the new work path
             submit_button = tk.Button(newWindow, text="Send", bg="light blue", font=("Arial Bold", 20),
-                                      command=lambda:[self.update_work_path(ID.get(), work_path.get("1.0", "end")), ID.delete(0,END),work_path.delete('1.0',END)])
+                                      command=lambda:[self.update_work_path(ID.get(), work_path.get("1.0", "end")), ID.delete(0,END),work_path.delete('1.0',END),on_closing()])
             submit_button.pack(side="bottom", pady=45)
             submit_button.configure(height=1, width=15)
 
