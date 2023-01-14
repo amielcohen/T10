@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, END
+from tkinter import ttk, END, simpledialog
 from tkinter import messagebox
 import os
 #from PIL import Image, ImageTk
@@ -7,6 +7,82 @@ import sqlite3
 
 last_ID = 0
 workers = {}
+beds = {}
+
+def update_db_of_beds(dict):
+    with open("beds.txt", "w") as file:
+        for key, value in dict.items():
+            file.write(f"{key} : {value}\n")
+    file.close()
+
+
+def update_bed_dict_by_DB(dict):
+    with open("beds.txt", "r") as file:
+        for line in file:
+            items = line.split()
+            key = int(items[0])
+            value = ""
+            for i in range(2, len(items)):
+                value += items[i] + " "
+            dict[key] = value
+    file.close()
+    return dict
+
+
+def init_dict(dict):
+    if os.path.exists("beds.txt"):
+        update_bed_dict_by_DB(dict)
+    else:
+        dict = {i: "free and clean" for i in
+                range(1, 100)}  # bed status's can be "free and clean", "cleaning needed", "occupied"
+    return dict
+
+
+beds = init_dict(beds)
+
+def test_is_bed_in_dict(num):
+    """Test if a bed is in a dict"""
+    try:
+        int(num)
+    except:
+        return False
+    if num < 1 or num > 99:
+        return False
+    return True
+
+def test_if_in_pattern(str):
+    return test_if_in_clean_bed_pattern(str) or test_if_in_fill_pattern(str) or test_if_in_clean_pattern(str)
+
+
+def test_if_in_fill_pattern(str):
+    """test if a string is in a 'fill (supplies) in (place)' pattern"""
+    list_of_str = str.split()
+    if list_of_str[0] == "fill":
+        return True
+    return False
+
+
+def test_if_in_clean_bed_pattern(str):
+    """test if a string is in a 'clean bed (num of bed)' pattern"""
+    list_of_str = str.split()
+    if list_of_str[0] == "clean" and list_of_str[1] == "bed":
+        return True
+    return False
+
+
+def test_if_in_clean_pattern(str):
+    """test if a string is in a 'clean (somewhere)' pattern"""
+    list_of_str = str.split()
+    if list_of_str[0] == "clean":
+        return True
+    return False
+
+
+def test_find_bed_by_serial_num(beds, num):
+    """testing finding a bed in a dict"""
+    curr_status = beds[num]
+    return curr_status == beds[num]
+
 
 
 def check_if_item_exist(str,file):
@@ -169,6 +245,15 @@ def test_show_path():
 def if_availability():
     return workers[last_ID]
 
+
+def available_workers_test(id):
+    with open(f'{id}.txt','r') as f:
+        line=f.readline()
+        line=line.split()
+        name=line[3]+" "+line[4]+" ID: "+str(id)
+    f.close()
+    return name
+
 #------------------------------------------------------------------------------------------------------------------------
 
 
@@ -209,7 +294,6 @@ class Loginpage(tk.Frame):
         PasswordL.place(x=260, y=250)
         button = tk.Button(self, text="login", font=("Arial", 15),
                            command=lambda: self.validation(controller))
-
         button.place(x=650, y=450)
 
     def validation(self, controller):
@@ -241,6 +325,8 @@ class Loginpage(tk.Frame):
                         global last_ID
                         last_ID = ID
                         controller.show_frame(WorkerHomePage)
+
+
                     else:
                         messagebox.showerror(title="error", message="Unknown error")
 
@@ -263,6 +349,181 @@ class SecretaryHomePage(tk.Frame):  # מזכירה רפואית
         button = tk.Button(self, text="logout", font=("Arial", 15),
                            command=lambda: controller.show_frame(Loginpage))
         button.place(x=650, y=450)
+        call_cleaner_button = tk.Button(self, text="Call Cleaner", font=("Arial", 15),
+                                        command=self.call_cleaner)
+        call_cleaner_button.place(x=270, y=150)
+
+        # create a button to request refills
+        self.request_refill_button = tk.Button(self, text="Request Refill", font=("Arial", 15),
+                                               command=self.request_refill)
+        self.request_refill_button.place(x=270, y=350)
+
+        # create a button to see beds
+        self.view_all_beds = tk.Button(self, text="View All Beds", font=("Arial", 15),
+                                       command=self.view_all_beds)
+        self.view_all_beds.place(x=650, y=150)
+
+        # create a button to see beds by status
+        self.view_beds_by_status_button = tk.Button(self, text="View Beds By Status", font=("Arial", 15),
+                                                    command=self.view_beds_by_status)
+        self.view_beds_by_status_button.place(x=650, y=250)
+
+        # create a button to see beds by serial number
+        self.view_beds_status_by_key_button = tk.Button(self, text="View Beds By Key",
+                                                        font=("Arial", 15), command=self.view_beds_status_by_key)
+        self.view_beds_status_by_key_button.place(x=650, y=350)
+
+        # create a button to change the bed's status by serial number
+        self.change_bed_status_button = tk.Button(self, text="Change a bed's status by key", font=("Arial", 15),
+                                                  command=self.change_bed_status)
+        self.change_bed_status_button.place(x=270, y=250)
+
+    def call_cleaner(self):
+        # Open a new window for the report
+        report_window = tk.Toplevel(self)
+        report_window.title("Cleaner Report")
+
+        # Add a text area for the report
+        report_text = tk.Text(report_window)
+        report_text.insert(tk.END, "clean ")
+        report_text.pack()
+
+        # Add a submit button
+        submit_button = tk.Button(report_window, text="Submit", font=("Arial", 15),
+                                  command=lambda: [self.submit_report(report_text.get("1.0", 'end-1c')),report_window.destroy()])
+        submit_button.pack()
+
+    def request_refill(self):
+        """This func can only accept text such as 'fill (something to fill) in (place to fill)' pattern"""
+        # the things to fill are: soap, bleach, disinfectant, broom, mop, rags, tissue, masks, gloves
+        # Open a new window for the refill request
+        refill_request_window = tk.Toplevel(self)
+        refill_request_window.title("Refill Request")
+
+        # Opens a text area for refill request
+        refill_text = tk.Text(refill_request_window)
+        refill_text.insert(tk.END, "fill ")
+        refill_text.pack()
+
+        # Add a submit button to send to a worker's db.
+        submit_button = tk.Button(refill_request_window, text="Submit", font=("Arial", 15),
+                                  command=lambda: [self.submit_report(refill_text.get("1.0", 'end-1c')),refill_request_window.destroy()])
+        submit_button.pack()
+
+    def submit_report(self, report):
+        num_of_lines = 5
+        # Save the report to a text file
+        worker_at_work = None
+        for ID in workers:
+            if workers[ID]:
+                worker_at_work = ID
+                break
+        if worker_at_work is None:
+            messagebox.showerror("Error", "There is no worker at work to send the report to.")
+            return
+        if test_if_in_pattern(report):
+            #open the file for reading
+            with open(f"{worker_at_work}.txt", "r+") as file:
+                for i in range(num_of_lines):
+                    file.readline()
+                while file.readline() != "":
+                    file.readline()
+                current_position = file.tell()
+                file.seek(current_position)
+                file.write(report + "\n")
+
+
+    def view_all_beds(self):
+        # Create a new window to display the beds status
+        beds_status_window = tk.Toplevel(self)
+        beds_status_window.minsize(300, 300)
+        beds_status_window.title("Beds Status")
+
+        # Create a scrollable listbox to display the beds status
+        listbox = tk.Listbox(beds_status_window, width=30, height=10, font=("Arial", 15))
+        listbox.pack(fill='both', expand=True)
+        scrollbar = tk.Scrollbar(listbox)
+        scrollbar.pack(side='right', fill='y')
+        listbox.config(yscrollcommand=scrollbar.set)
+        scrollbar.config(command=listbox.yview)
+
+        for bed, status in beds.items():
+            listbox.insert("end", f"{bed} : {status}")
+
+    def view_beds_by_status(self):
+        # Create a new window to display the beds status
+        beds_status_window = tk.Toplevel(self)
+        beds_status_window.title("Beds By Status")
+
+        # create an entry for the status
+        status_label = tk.Label(beds_status_window, text="Enter Status:", font=("Arial", 15))
+        status_label.pack()
+        status_entry = tk.Entry(beds_status_window, font=("Arial", 15))
+        status_entry.pack()
+        submit_button = tk.Button(beds_status_window, text="Submit", font=("Arial", 15),
+                                  command=lambda: self.show_beds_by_status(status_entry.get(), beds_status_window))
+        submit_button.pack()
+
+    def show_beds_by_status(self, status, beds_status_window):
+        bed_list = tk.Listbox(beds_status_window, width=30, height=10, font=("Arial", 15))
+        bed_list.pack()
+        for bed, stat in beds.items():  # can only accept 3 types of status
+            if stat == status:
+                bed_list.insert("end", bed)
+        if not bed_list.get(0, "end"):
+            bed_list.insert("end", "No beds with this status.")
+
+    def view_beds_status_by_key(self):
+        # Create a new window to display the bed status
+        bed_status_window = tk.Toplevel(self)
+        bed_status_window.title("Bed Status By Serial Number")
+
+        # Create an entry for the serial number
+        serial_number_label = tk.Label(bed_status_window, text="Enter Serial Number:", font=("Arial", 15))
+        serial_number_label.pack()
+        serial_number_entry = tk.Entry(bed_status_window, font=("Arial", 15))
+        serial_number_entry.pack()
+        submit_button = tk.Button(bed_status_window, text="Submit", font=("Arial", 15),
+                                  command=lambda: self.show_bed_status_by_serial_number(serial_number_entry.get(),
+                                                                                        bed_status_window))
+        submit_button.pack()
+
+    def show_bed_status_by_serial_number(self, serial_number, bed_status_window):
+        bed_status = beds.get(int(serial_number))
+        if bed_status is None:
+            status_label = tk.Label(bed_status_window, text=f"Bed with serial number {serial_number} not found.",
+                                    font=("Arial", 15))
+        else:
+            status_label = tk.Label(bed_status_window,
+                                    text=f"Bed with serial number {serial_number} status is: {bed_status}.",
+                                    font=("Arial", 15))
+        status_label.pack()
+
+    def change_bed_status(self):
+        # Get the serial number of the bed
+        serial_number = simpledialog.askstring("Change bed status", "Enter the serial number of the bed:", parent=self)
+        if int(serial_number) in beds:
+            # Get the new status for the bed
+            new_status = simpledialog.askstring("Change bed status",
+                                                "Enter the new status for the bed (\"cleaning needed\", \"occupied\"):",
+                                                parent=self)
+            if new_status in ['cleaning needed', 'occupied']:
+                beds[int(serial_number)] = new_status
+                update_db_of_beds(beds)
+                messagebox.showinfo("Change bed status",
+                                    f"Bed with serial number {serial_number}'s status has been updated to {new_status}.")
+                if new_status == "cleaning needed":
+                    for worker_id, worker in workers.items():
+                        if worker:
+                            report = f'clean bed {serial_number}'
+                            with open(f"{worker_id}.txt", "a") as file:
+                                file.write(report)
+                            file.close()
+                            break
+            else:
+                messagebox.showerror("Change bed status", "Invalid status, please enter one of the valid statuses")
+        else:
+            messagebox.showerror("Change bed status", f"Bed with serial number {serial_number} not found.")
 
 
 # ---------------------------------------------------------------------------------------------------------------------------
@@ -272,29 +533,52 @@ class ManagerHomePage(tk.Frame):  # מנהל
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.configure(bg="#4f558f")
-        equipment = tk.Button(self, text="Viewing equipment orders", font=("Arial", 12), command=self.check_supp)
-        equipment.place(x=300, y=400)
+        equipment = tk.Button(self, text="Viewing Equipment Orders", font=("Arial", 16), command=self.check_supp,bg="light blue")
+        equipment.place(x=100, y=380)
         Label = tk.Label(self, text="Manager", font=("Arial Bold", 30), bg="#4f558f")
-        Label.place(x=270, y=80)
-        log_out = tk.Button(self, text="logout", font=("Arial", 15),
+        Label.place(x=310, y=80)
+        log_out = tk.Button(self, text="Logout", font=("Arial", 15),
                             command=lambda: controller.show_frame(Loginpage))
 
         log_out.place(x=650, y=450)
-        self.edit = tk.Button(self, text="edit workers", bg="light blue", command=self.edit_workers, width=10)
-        self.edit.place(x=100, y=300)
+        self.edit = tk.Button(self, text="Edit Workers", bg="light blue", command=self.edit_workers, width=10,font=("Arial", 16))
+        self.edit.place(x=100, y=240)
         self.edit_window_is_open = False
 
 
 
         # Add the "Edit specific worker work-path" button
-        self.edit_work_path = tk.Button(self, text="Edit specific worker work-path", bg="light blue",
-                                        command=self.edit_work_path, width=30)
-        self.edit_work_path.place(x=100, y=350)
+        self.edit_work_path = tk.Button(self, text="Edit Specific Worker Work-Path", bg="light blue",
+                                        command=self.edit_work_path, width=30,font=("Arial", 16))
+        self.edit_work_path.place(x=100, y=310)
         self.edit_work_path_window_is_open = False
 
-        self.button3 = tk.Button(self, text='Daily Reports', bg='green', font=('Arial Bold', 15),
+        self.button3 = tk.Button(self, text='Daily Reports', bg='light green', font=('Arial Bold', 15),
                                  command=self.view_daily_report)
-        self.button3.place(x=590, y=150)
+        self.button3.place(x=590, y=250)
+
+        self.show_all_workers=tk.Button(self,text="View Available Workers",bg="#119981", font=('Arial Bold', 15),command=self.view_all_workers)
+        self.show_all_workers.place(x=580, y=350)
+
+
+    def view_all_workers(self):
+        # Create a new window to display the workers
+        workers_window = tk.Toplevel(self)
+        workers_window.minsize(300,300)
+        workers_window.title("available workers")
+
+        # Create a scrollable listbox to display the beds status
+        listbox = tk.Listbox(workers_window, width=30, height=10, font=("Arial", 15))
+        listbox.pack(fill='both', expand=True)
+        scrollbar = tk.Scrollbar(listbox)
+        scrollbar.pack(side='right', fill='y')
+        listbox.config(yscrollcommand=scrollbar.set)
+        scrollbar.config(command=listbox.yview)
+
+        for ID in workers.keys():
+            if workers[ID]:
+                name=available_workers_test(ID)
+                listbox.insert("end",f"{name}")
 
     def view_daily_report(self):
         newWindow = tk.Toplevel(self)
@@ -448,15 +732,18 @@ class ManagerHomePage(tk.Frame):  # מנהל
             # Close the window when the "x" button is clicked
             newWindow.protocol("WM_DELETE_WINDOW", on_closing)
 
+
     def update_work_path(self, worker_id, new_work_path):
-
         if tk.messagebox.askyesno("Question", f"By clicking yes the {worker_id} work path will change") == True:
-
             # Open the worker's id.txt file and update the first line with the new work path
             with open(f"{worker_id}.txt", "r+") as f:
                 lines = f.readlines()
+                if '\n' not in lines[0]:
+                    lines[0] += '\n'
+                while len(lines) < 4:
+                    lines.append('\n')
                 # Update the second line with the new work path
-                lines[1] = str(new_work_path) + '\n'
+                lines[1] = str(new_work_path)
                 # Write the updated lines back to the file
                 f.seek(0)
                 f.writelines(lines)
@@ -622,7 +909,7 @@ class ManagerHomePage(tk.Frame):  # מנהל
         tissue = tk.Label(master, text='tissue', bg=items_color['tissue'], font=("Arial", 15)).place(x=180, y=260)
         masks = tk.Label(master, text='masks', bg=items_color['masks'], font=("Arial", 15)).place(x=180, y=300)
         gloves = tk.Label(master, text='gloves', bg=items_color['gloves'], font=("Arial", 15)).place(x=180, y=340)
-        directive = tk.Label(master, text='red-need to order\ngreen-in stck', bg="light blue", font=("Arial", 8)).place(x=160, y=400)
+        directive = tk.Label(master, text='red-need to order\ngreen-in stock', bg="light blue", font=("Arial", 8)).place(x=160, y=400)
 
         def confrim():
             if tk.messagebox.askyesno("Question", "With your approval, the requests will be deleted") == True:
@@ -636,33 +923,36 @@ class ManagerHomePage(tk.Frame):  # מנהל
 # ---------------------------------------------------------------------------------------------------------------------------------------------
 
 class WorkerHomePage(tk.Frame):  # עובד ניקיון
+
+
+
     def join_out_work(self):
 
-        if (self.present['text'] == "enter work"):
-            self.present.configure(bg="green", text="at work")
+        if (self.present['text'] == "Enter Work"):
+            self.present.configure(bg="red", text="Leave a shift")
             f = open(f'{last_ID}.txt', 'r')
             line=f.readline()
             line=line.split()
             name=line[4]+" "+line[3]
             f.close()
-            self.label_name.configure(text=f"hello {name}")
+            self.label_name.configure(text=f"Hello {name}",font=("Arial Bold", 25))
             change_availability(True)
 
-        elif (self.present['text'] == "at work"):
+        elif (self.present['text'] == "Leave a shift"):
             if self.daily_report == False:
                 tk.messagebox.showinfo(title="report not enterd",message="Please fill your daily report before leaving")
             else:
-                self.present.configure(bg="red", text="enter work")
-                self.label_name.configure(text="hello")
+                self.present.configure(bg="green", text="Enter Work")
+                self.label_name.configure(text="Hello",font=("Arial Bold", 25))
                 change_availability(False)
 
 
     def clean(self):
-        workers[last_ID] = False
-        self.present.configure(bg="red", text="enter work")
-        self.label_name.configure(text="hello")
-        change_availability(False)
+        self.present.configure(bg="green", text="Enter Work")
+        self.label_name.configure(text="Hello",font=("Arial Bold", 25))
+
     def order_supp(self):
+
         buttons = ['soap', 'bleach', 'disinfectant', 'broom', 'mop', 'rags', 'tissue ', 'masks', 'gloves']
         btnElements = []
 
@@ -700,36 +990,36 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        self.lorder = tk.Button(self, text="order supplies", font=("Arial Bold", 20), bg="yellow",
+        self.lorder = tk.Button(self, text="Order Supplies", font=("Arial Bold", 15), bg="yellow",
                                 command=self.order_supp)
-        self.lorder.place(x=200, y=280)
-        self.label_name = tk.Label(self, text="hello ", font=("Arial Bold", 20), bg="#4f558f")
-        self.label_name.place(x=80, y=200)
+        self.lorder.place(x=350, y=380)
+        self.label_name = tk.Label(self, text="Hello ", font=("Arial Bold", 25), bg="#4f558f")
+        self.label_name.place(x=80, y=150)
         self.configure(bg="#4f558f")
         Label = tk.Label(self, text="Worker Home Page", font=("Arial Bold", 30), bg="#4f558f")
         Label.place(x=270, y=80)
         self.daily_report = False
 
-        button = tk.Button(self, text="logout", bg="red", font=("Arial", 15),
+        button = tk.Button(self, text="Logout", font=("Arial", 15),
                            command=lambda: [self.clean(), logout(),controller.show_frame(Loginpage),self.daily_report_reset()])
         button.place(x=750, y=450)
-        self.present = tk.Button(self, text="enter work", bg="red", command=self.join_out_work, width=10)
-        self.present.place(x=100, y=300)
-        self.button1 = tk.Button(self, text="Worker work path", font=("Arial", 15), command=self.show_path)
-        self.button1.place(x=100, y=450)
+        self.present = tk.Button(self, text="Enter Work", bg="green", command=self.join_out_work, width=10)
+        self.present.place(x=80, y=200)
+        self.button1 = tk.Button(self, text="Worker Work Path", font=("Arial", 15), command=self.show_path)
+        self.button1.place(x=100, y=380)
         # create a button to view notifications
-        self.button2 = tk.Button(self, text='Clean Beds Notifications', bg='red', font=('Arial Bold', 15),
+        self.button2 = tk.Button(self, text='Clean Beds Notifications', bg='#ff3333', font=('Arial Bold', 15),width=23,
                                  command=self.view_notifications_clean_bed)
-        self.button2.place(x=590, y=150)
-        self.button3 = tk.Button(self, text='Clean Places Notifications', bg='green', font=('Arial Bold', 15),
+        self.button2.place(x=300, y=210)
+        self.button3 = tk.Button(self, text='Clean Places Notifications', bg='#905fa2', font=('Arial Bold', 15),width=23 ,
                                  command=self.view_notifications_clean_place)
-        self.button3.place(x=590, y=190)
-        self.button4 = tk.Button(self, text='Notifications of deficiencies', bg='green', font=('Arial Bold', 15),
+        self.button3.place(x=300, y=250)
+        self.button4 = tk.Button(self, text='Notifications of Deficiencies', bg='#d48f7c', font=('Arial Bold', 15),width=23,
                                  command=self.view_notifications_deficients)
-        self.button4.place(x=590, y=230)
-        self.daily_report_button = tk.Button(self, text='Send Daily Reoprt', font=('Arial Bold', 15),
+        self.button4.place(x=300, y=290)
+        self.daily_report_button = tk.Button(self, text='Send Daily Report', font=('Arial Bold', 15),
                                              command=self.send_daily_report)
-        self.daily_report_button.place(x=400, y=450)
+        self.daily_report_button.place(x=550, y=380)
 
     def daily_report_reset(self):
         self.daily_report = False
@@ -784,31 +1074,39 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
 
         # display the work path of the worker
 
+        # display the work path of the worker
     def show_path(self):
         global last_ID
         if if_availability() == 0:
-            # Show an error message
-            messagebox.showerror("Error", "Please enter work first")
-            return
+        # Show an error message
+           messagebox.showerror("Enter Work Error", "Please enter work first")
+           return
 
-        # make list of the path
+         # make list of the path
         work_path = []
-        # Read the first 3 lines of the file with the same name as the user's ID
+            # Read the first 3 lines of the file with the same name as the user's ID
         with open(str(last_ID) + '.txt', 'r') as f:
             # Split the contents of the file by line breaks
-            work_path = f.read().split('\n')[1:4]
+            f.seek(2)
+
+            work_path = []
+            work_path.append(f.readline())
+            work_path.append(f.readline())
+            work_path.append(f.readline())
+            work_path.append(f.readline())
+            work_path.pop(0)
             list_path = []
 
-            # Iterate through the elements in work_path
+                # Iterate through the elements in work_path
             for line in work_path:
-                # Split the line into separate words
+                 # Split the line into separate words
                 words = line.split()
                 # Add the words to the list_path list
                 list_path.extend(words)
 
-        # Show the work path to the user
+            # Show the work path to the user
         addWindow = tk.Toplevel(self)
-        addWindow.title("Work path")
+        addWindow.title("Work Path")
         addWindow.configure(bg="bisque")
         addWindow.geometry("400x390")
         addWindow.resizable(False, False)
@@ -820,7 +1118,7 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
             buttons[word]['activebackground'] = 'lightgreen'
             buttons[word]['text'] = f"{word} (Done)"
 
-        # Iterate through the elements in list_path
+            # Iterate through the elements in list_path
         i = 1
         for word in list_path:
             # Create a label with the text from list_path
@@ -853,6 +1151,7 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
             self.button2.config(state=tk.DISABLED)
             self.button3.config(state=tk.DISABLED)
             self.button4.config(state=tk.DISABLED)
+            self.daily_report_button.config(state=tk.DISABLED)
         return result
 
     def bed_ready(self, notification):
@@ -873,9 +1172,25 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
             self.button2.config(state=tk.NORMAL)
             self.button3.config(state=tk.NORMAL)
             self.button4.config(state=tk.NORMAL)
+            self.daily_report_button.config(state=tk.NORMAL)
             # Remove the "bed ready" button
             self.bed_ready_button.destroy()
             f.close()
+            notification=notification.split()
+            for word in notification:
+                try:
+                    word = int(word)
+
+                    with open("beds.txt", "r+") as beds_file:
+                        beds_list = beds_file.readlines()
+                        beds_list[word - 1] = str(word) + ' : free and clean\n'
+                        beds_file.close()
+                        with open("beds.txt", "w") as beds_file:
+                            beds_file.writelines(beds_list)
+                            beds_file.close()
+                            beds[word]="free and clean"
+                            break
+                except: pass
 
     def view_notifications_clean_bed(self):
         if if_availability() == 0:
@@ -900,24 +1215,28 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
         def mark_as_verified(notification):
             # Disable all the buttons if the user click yes.
             result = messagebox.askyesno("Confirm Request", "Are you sure you want to confirm this request?")
-            if result:
-                # Close the notification window
-                self.window.destroy()
-                # Create a button on the home page to indicate that the bed is ready
-                self.bed_ready_button = tk.Button(self, text="Click here when the bed is ready", bg="red",
-                                                  command=lambda: self.bed_ready(notification))
-                self.bed_ready_button.place(x=100, y=350)
-                # Disable all other buttons on the home page
-                self.lorder.config(state=tk.DISABLED)
-                self.present.config(state=tk.DISABLED)
-                self.button1.config(state=tk.DISABLED)
-                self.button2.config(state=tk.DISABLED)
-                self.button3.config(state=tk.DISABLED)
-                self.button4.config(state=tk.DISABLED)
-                # update the appearance of the button
-                buttons[notification]['bg'] = 'lightgreen'
-                buttons[notification]['activebackground'] = 'lightgreen'
-                buttons[notification]['text'] = f"{notification} (Accepted)"
+            try:
+                if result:
+                    # Close the notification window
+                    self.window.destroy()
+                    # Create a button on the home page to indicate that the bed is ready
+                    self.bed_ready_button = tk.Button(self, text="Click here when the bed is ready", bg="red",
+                                                      command=lambda: self.bed_ready(notification))
+                    self.bed_ready_button.place(x=100, y=350)
+                    # Disable all other buttons on the home page
+                    self.lorder.config(state=tk.DISABLED)
+                    self.present.config(state=tk.DISABLED)
+                    self.button1.config(state=tk.DISABLED)
+                    self.button2.config(state=tk.DISABLED)
+                    self.button3.config(state=tk.DISABLED)
+                    self.button4.config(state=tk.DISABLED)
+                    self.daily_report_button.config(state=tk.DISABLED)
+                    # update the appearance of the button
+                    buttons[notification]['bg'] = 'lightgreen'
+                    buttons[notification]['activebackground'] = 'lightgreen'
+                    buttons[notification]['text'] = f"{notification} (Accepted)"
+            except:
+                pass
 
         # read the notifications from the file
         with open(f"{last_ID}.txt", 'r') as f:
@@ -1052,7 +1371,7 @@ class WorkerHomePage(tk.Frame):  # עובד ניקיון
         # display the notifications in the new window
         for notification in fill_notifications:
             # create a button for each notification and store a reference in the dictionary
-            button = tk.Button(window, text=notification, command=lambda n=notification: mark_as_verified(n))
+            button = tk.Button(window, text=notification, bg="light blue",command=lambda n=notification: mark_as_verified(n))
             buttons[notification] = button
             button.pack()
         # add an Exit button to close the window
